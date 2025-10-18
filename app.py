@@ -1,12 +1,10 @@
 import streamlit as st
 import pandas as pd
-import os
 import plotly.express as px
 
-# ======================================
-# 🗂️ Konfigurasi Data
-# ======================================
-DATA_PATH = "data/scholarships.csv"
+# =====================================
+# 🧠 Session-based database (tanpa CSV)
+# =====================================
 COLUMNS = [
     "Nama User",
     "Negara",
@@ -22,35 +20,30 @@ COLUMNS = [
     "Pengumuman"
 ]
 
-# Pastikan folder data ada
-os.makedirs("data", exist_ok=True)
+if "data" not in st.session_state:
+    st.session_state.data = pd.DataFrame(columns=COLUMNS)
 
-# ======================================
-# 🧠 Load data ke session state
-# ======================================
-if "df" not in st.session_state:
-    if os.path.exists(DATA_PATH):
-        st.session_state.df = pd.read_csv(DATA_PATH)
-    else:
-        st.session_state.df = pd.DataFrame(columns=COLUMNS)
+df = st.session_state.data
 
-# ======================================
+# =====================================
 # 🎨 Setup UI
-# ======================================
+# =====================================
 st.set_page_config(page_title="Scholarship Tracker 2025", layout="wide", page_icon="🎓")
 
 st.markdown("<h1 style='text-align:center; color:#1a5276;'>🎓 Scholarship Tracker 2025</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Pantau, tambah, dan kelola semua beasiswa kamu secara langsung 📚</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Kelola, pantau, dan edit semua beasiswa kamu secara langsung 📚</p>", unsafe_allow_html=True)
 st.divider()
 
-df = st.session_state.df
-
-# ======================================
-# 👥 Filter Sidebar
-# ======================================
+# =====================================
+# 🔍 Filter Sidebar
+# =====================================
 st.sidebar.header("🔍 Filter Data")
-user_filter = st.sidebar.selectbox("Pilih User", ["Semua"] + sorted(df["Nama User"].dropna().unique().tolist()))
-country_filter = st.sidebar.selectbox("Filter Negara", ["Semua"] + sorted(df["Negara"].dropna().unique().tolist()))
+
+user_list = sorted(df["Nama User"].dropna().unique().tolist()) if not df.empty else []
+user_filter = st.sidebar.selectbox("Pilih User", ["Semua"] + user_list)
+
+country_list = sorted(df["Negara"].dropna().unique().tolist()) if not df.empty else []
+country_filter = st.sidebar.selectbox("Filter Negara", ["Semua"] + country_list)
 
 filtered_df = df.copy()
 if user_filter != "Semua":
@@ -58,9 +51,9 @@ if user_filter != "Semua":
 if country_filter != "Semua":
     filtered_df = filtered_df[filtered_df["Negara"] == country_filter]
 
-# ======================================
+# =====================================
 # ➕ Input Data
-# ======================================
+# =====================================
 with st.expander("➕ Tambahkan Beasiswa Baru"):
     with st.form("input_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -94,15 +87,14 @@ with st.expander("➕ Tambahkan Beasiswa Baru"):
                 "Deadline Tes 2": tes2,
                 "Pengumuman": pengumuman
             }])
-            st.session_state.df = pd.concat([st.session_state.df, new_entry], ignore_index=True)
-            st.session_state.df.to_csv(DATA_PATH, index=False)
-            st.success(f"✅ Beasiswa '{beasiswa}' berhasil disimpan!")
+            st.session_state.data = pd.concat([st.session_state.data, new_entry], ignore_index=True)
+            st.success(f"✅ Beasiswa '{beasiswa}' berhasil ditambahkan!")
 
 st.divider()
 
-# ======================================
+# =====================================
 # 📊 Statistik Beasiswa
-# ======================================
+# =====================================
 st.subheader("📈 Statistik Beasiswa")
 
 if not filtered_df.empty:
@@ -121,29 +113,30 @@ else:
 
 st.divider()
 
-# ======================================
-# 📋 Tabel Data
-# ======================================
-st.subheader("📋 Database Beasiswa")
+# =====================================
+# 📋 Edit dan Tabel Data
+# =====================================
+st.subheader("📋 Database Beasiswa (Editable)")
 
-if filtered_df.empty:
-    st.warning("Belum ada data beasiswa.")
+if not filtered_df.empty:
+    edited_df = st.data_editor(filtered_df, use_container_width=True, hide_index=True, num_rows="dynamic")
+    # Update session state jika ada perubahan
+    st.session_state.data.loc[edited_df.index, :] = edited_df
 else:
-    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+    st.warning("Belum ada data beasiswa. Tambahkan data di atas dulu ya!")
 
-# ======================================
+# =====================================
 # 🗑️ Hapus Data
-# ======================================
+# =====================================
 with st.expander("🗑️ Hapus Beasiswa"):
     if not df.empty:
         del_name = st.selectbox("Pilih Beasiswa yang akan dihapus", [""] + df["Beasiswa"].tolist())
         if st.button("Hapus Data"):
             if del_name:
-                st.session_state.df = st.session_state.df[st.session_state.df["Beasiswa"] != del_name]
-                st.session_state.df.to_csv(DATA_PATH, index=False)
+                st.session_state.data = st.session_state.data[st.session_state.data["Beasiswa"] != del_name]
                 st.success(f"❌ Beasiswa '{del_name}' berhasil dihapus.")
     else:
         st.info("Belum ada data yang bisa dihapus.")
 
 st.divider()
-st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Powered by Streamlit & GitHub")
+st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Database langsung di Streamlit (tanpa file)")
