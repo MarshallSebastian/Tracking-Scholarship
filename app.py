@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings("ignore")
 
 # =====================================
 # 🎨 PAGE CONFIGURATION
@@ -82,6 +84,7 @@ with st.form("add_form", clear_on_submit=True):
             }])
             st.session_state.data = pd.concat([st.session_state.data, new_entry], ignore_index=True)
             st.success(f"✅ Beasiswa '{beasiswa}' berhasil disimpan!")
+            st.rerun()  # AUTO REFRESH SAAT SAVE
 
 st.divider()
 
