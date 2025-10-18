@@ -30,8 +30,33 @@ df = st.session_state.data
 # =====================================
 st.set_page_config(page_title="Scholarship Tracker 2025", layout="wide", page_icon="🎓")
 
-st.markdown("<h1 style='text-align:center; color:#1a5276;'>🎓 Scholarship Tracker 2025</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Kelola, pantau, dan edit semua beasiswa kamu secara langsung 📚</p>", unsafe_allow_html=True)
+# Custom CSS biar tabel & UI lebih keren
+st.markdown("""
+    <style>
+        body {
+            background-color: #f8fafc;
+        }
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 1rem;
+        }
+        h1, h2, h3 {
+            color: #1a5276;
+        }
+        .stDataFrame table {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        [data-testid="stDataFrame"] {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.05);
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown("<h1 style='text-align:center;'>🎓 Scholarship Tracker 2025</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#5f6368;'>Kelola dan pantau semua beasiswa kamu langsung dari satu dashboard ✨</p>", unsafe_allow_html=True)
 st.divider()
 
 # =====================================
@@ -40,10 +65,10 @@ st.divider()
 st.sidebar.header("🔍 Filter Data")
 
 user_list = sorted(df["Nama User"].dropna().unique().tolist()) if not df.empty else []
-user_filter = st.sidebar.selectbox("Pilih User", ["Semua"] + user_list)
+user_filter = st.sidebar.selectbox("👤 Pilih User", ["Semua"] + user_list)
 
 country_list = sorted(df["Negara"].dropna().unique().tolist()) if not df.empty else []
-country_filter = st.sidebar.selectbox("Filter Negara", ["Semua"] + country_list)
+country_filter = st.sidebar.selectbox("🌍 Filter Negara", ["Semua"] + country_list)
 
 filtered_df = df.copy()
 if user_filter != "Semua":
@@ -102,8 +127,10 @@ if not filtered_df.empty:
 
     fig_country = px.bar(
         filtered_df.groupby("Negara").size().reset_index(name="Jumlah"),
-        x="Negara", y="Jumlah", title="📍 Jumlah Beasiswa per Negara"
+        x="Negara", y="Jumlah", title="📍 Jumlah Beasiswa per Negara",
+        text_auto=True
     )
+    fig_country.update_traces(marker_color="#1a5276")
     col1.plotly_chart(fig_country, use_container_width=True)
 
     fig_user = px.pie(filtered_df, names="Nama User", title="👥 Proporsi Beasiswa per User")
@@ -114,14 +141,28 @@ else:
 st.divider()
 
 # =====================================
-# 📋 Edit dan Tabel Data
+# 📋 Tabel Data (Editable)
 # =====================================
-st.subheader("📋 Database Beasiswa (Editable)")
+st.subheader("📋 Database Beasiswa (Langsung Bisa Diedit)")
 
 if not filtered_df.empty:
-    edited_df = st.data_editor(filtered_df, use_container_width=True, hide_index=True, num_rows="dynamic")
-    # Update session state jika ada perubahan
+    edited_df = st.data_editor(
+        filtered_df,
+        use_container_width=True,
+        hide_index=True,
+        num_rows="fixed",
+        column_config={
+            "Link Beasiswa": st.column_config.LinkColumn("Link Beasiswa"),
+            "Benefit Scholarship": st.column_config.TextColumn("Benefit Scholarship", width="medium"),
+            "Other Requirements": st.column_config.TextColumn("Other Requirements", width="medium")
+        },
+        key="editable_table"
+    )
+
+    # Update perubahan langsung ke database utama
     st.session_state.data.loc[edited_df.index, :] = edited_df
+
+    st.success("✅ Perubahan disimpan otomatis ke database sementara (session).")
 else:
     st.warning("Belum ada data beasiswa. Tambahkan data di atas dulu ya!")
 
@@ -139,4 +180,4 @@ with st.expander("🗑️ Hapus Beasiswa"):
         st.info("Belum ada data yang bisa dihapus.")
 
 st.divider()
-st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Database langsung di Streamlit (tanpa file)")
+st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Database langsung di Streamlit (editable & live)")
