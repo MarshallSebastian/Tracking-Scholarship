@@ -7,7 +7,7 @@ import json, os
 # ================================
 # ⚙️ PAGE CONFIG
 # ================================
-st.set_page_config(page_title="🎓 Scholarship Tracker 3.3", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="🎓 Scholarship Tracker 3.4", page_icon="🎓", layout="wide")
 
 # ================================
 # 💾 DATA HANDLING
@@ -33,16 +33,17 @@ def save_data(df):
         json.dump(df.to_dict(orient="records"), f, ensure_ascii=False, indent=2)
 
 df = load_data()
-for col in [
+required_cols = [
     "Nama User", "Negara", "Beasiswa", "Link Beasiswa", "IELTS", "GPA",
     "Other Requirements", "Benefit Scholarship",
     "Periode Pendaftaran (Mulai)", "Periode Pendaftaran (Selesai)",
     "Periode Dokumen (Mulai)", "Periode Dokumen (Selesai)",
     "Periode Wawancara (Mulai)", "Periode Wawancara (Selesai)",
     "Periode Tes (Mulai)", "Periode Tes (Selesai)", "Tanggal Pengumuman"
-]:
-    if col not in df.columns:
-        df[col] = ""
+]
+for c in required_cols:
+    if c not in df.columns:
+        df[c] = ""
 
 # ================================
 # 🎨 STYLING
@@ -57,7 +58,7 @@ h1, h2, h3, h4 { color: #1f4e79; }
 # ================================
 # 🎓 HEADER
 # ================================
-st.markdown("<h1 style='text-align:center;'>🎓 Scholarship Tracker 3.3</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>🎓 Scholarship Tracker 3.4</h1>", unsafe_allow_html=True)
 st.caption("📍 Data tersimpan otomatis secara lokal (JSON) — tetap aman walau direfresh 🔒")
 st.divider()
 
@@ -163,7 +164,7 @@ else:
     st.info("Belum ada data untuk reminder.")
 
 # ================================
-# 📅 GANTT CHART (Filter User & Negara)
+# 🗓️ GANTT CHART
 # ================================
 st.divider()
 st.markdown("## 🗓️ Timeline Beasiswa (Gantt Chart)")
@@ -206,61 +207,35 @@ if not df.empty:
         st.warning("Tidak ada data untuk user & negara ini.")
 
 # ================================
-# 📋 DATABASE MODERN & RESPONSIVE
+# 📋 DATABASE USER FRIENDLY & EDITABLE
 # ================================
 st.divider()
-st.markdown("## 📋 Database Beasiswa")
+st.markdown("## 📋 Database Beasiswa (Editable & Compact)")
 
 if not df.empty:
-    df_display = df.copy()
-    df_display["Link Beasiswa"] = df_display["Link Beasiswa"].apply(
-        lambda x: f'<a href="{x}" target="_blank" style="color:#1f77b4; text-decoration:none;">🌐 Buka Link</a>' if x else "-"
+    df_editable = df.copy()
+    df_editable["Link Beasiswa"] = df_editable["Link Beasiswa"].apply(lambda x: x if isinstance(x, str) else "")
+    edited_df = st.data_editor(
+        df_editable,
+        use_container_width=True,
+        hide_index=True,
+        num_rows="fixed",
+        column_config={
+            "Link Beasiswa": st.column_config.TextColumn("Link Beasiswa (klik di browser)"),
+            "Other Requirements": st.column_config.TextColumn("Other Requirements", width="medium"),
+            "Benefit Scholarship": st.column_config.TextColumn("Benefit Scholarship", width="medium")
+        },
+        disabled=[],
+        height=400
     )
 
-    st.markdown("""
-    <style>
-    .styled-table {
-        border-collapse: collapse;
-        width: 100%;
-        font-family: "Poppins", sans-serif;
-        font-size: 14px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    .styled-table thead tr {
-        background-color: #1f4e79;
-        color: #ffffff;
-        text-align: left;
-    }
-    .styled-table th, .styled-table td {
-        padding: 10px 15px;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        overflow: hidden;
-    }
-    .styled-table tbody tr {
-        border-bottom: 1px solid #dddddd;
-    }
-    .styled-table tbody tr:nth-of-type(even) {
-        background-color: #f3f6fa;
-    }
-    .styled-table tbody tr:hover {
-        background-color: #e9f3ff;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    html_table = df_display.to_html(
-        escape=False,
-        index=False,
-        classes="styled-table"
-    )
-
-    st.markdown(html_table, unsafe_allow_html=True)
-
+    # Simpan otomatis jika ada perubahan
+    if not edited_df.equals(df):
+        save_data(edited_df)
+        st.success("✅ Perubahan disimpan otomatis.")
+        st.rerun()
 else:
     st.info("Belum ada data yang bisa ditampilkan.")
 
 st.divider()
-st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 3.3 | Streamlit + JSON Persistent | UI Enhanced")
+st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 3.4 | Streamlit + JSON Persistent | Smart Editable Table")
