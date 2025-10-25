@@ -1,20 +1,16 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+from datetime import datetime, date
 import json, os
 
 # ================================
 # ⚙️ PAGE CONFIG
 # ================================
-st.set_page_config(
-    page_title="🎓 Scholarship Tracker",
-    page_icon="🎓",
-    layout="wide"
-)
+st.set_page_config(page_title="🎓 Scholarship Tracker 3.0", page_icon="🎓", layout="wide")
 
 # ================================
-# 💾 DATA STORAGE
+# 💾 PERSISTENT DATA
 # ================================
 DATA_FILE = "data_scholarship.json"
 
@@ -25,11 +21,13 @@ def load_data():
         return pd.DataFrame(data)
     else:
         return pd.DataFrame(columns=[
-            "Nama User", "Negara", "Beasiswa", "Link Beasiswa",
-            "IELTS", "GPA", "Other Requirements", "Benefit Scholarship",
-            "Periode Pendaftaran (Dari)", "Periode Pendaftaran (Sampai)",
-            "Deadline Dokumen", "Deadline Wawancara",
-            "Deadline Tes 1", "Deadline Tes 2", "Tanggal Pengumuman"
+            "Nama User", "Negara", "Beasiswa", "Link Beasiswa", "IELTS", "GPA",
+            "Other Requirements", "Benefit Scholarship",
+            "Periode Pendaftaran (Mulai)", "Periode Pendaftaran (Selesai)",
+            "Periode Dokumen (Mulai)", "Periode Dokumen (Selesai)",
+            "Periode Wawancara (Mulai)", "Periode Wawancara (Selesai)",
+            "Periode Tes (Mulai)", "Periode Tes (Selesai)",
+            "Tanggal Pengumuman"
         ])
 
 def save_data(df):
@@ -44,10 +42,10 @@ df = load_data()
 st.markdown("""
 <style>
     body {
-        background-color: #f7f9fc;
+        background-color: #f8fafc;
         font-family: "Poppins", sans-serif;
     }
-    .stTextInput, .stTextArea, .stDateInput, .stSelectbox {
+    .stTextInput, .stTextArea, .stDateInput {
         border-radius: 8px !important;
     }
     .stButton>button {
@@ -68,7 +66,7 @@ st.markdown("""
     }
     table {
         border-collapse: collapse;
-        border: 1px solid #ccc;
+        border: 1px solid #ddd;
     }
     tr:nth-child(even) {background-color: #f9f9f9;}
     tr:hover {background-color: #eaf2f8;}
@@ -78,8 +76,8 @@ st.markdown("""
 # ================================
 # 🎓 HEADER
 # ================================
-st.markdown("<h1 style='text-align:center;'>🎓 Scholarship Tracker 2.0</h1>", unsafe_allow_html=True)
-st.caption("📍 Data tersimpan otomatis di file lokal (JSON) — tetap aman walau direfresh 🔒")
+st.markdown("<h1 style='text-align:center;'>🎓 Scholarship Tracker 3.0</h1>", unsafe_allow_html=True)
+st.caption("📍 Data tersimpan otomatis secara lokal (JSON) — tetap aman walau direfresh 🔒")
 st.divider()
 
 # ================================
@@ -90,67 +88,70 @@ st.subheader("➕ Tambahkan / Update Data Beasiswa")
 with st.form("form_beasiswa", clear_on_submit=True):
     st.markdown("Masukkan detail lengkap beasiswa di bawah ini:")
 
-    # Dropdown auto-fill
-    user_list = df["Nama User"].dropna().unique().tolist()
-    country_list = df["Negara"].dropna().unique().tolist()
-    scholarship_list = df["Beasiswa"].dropna().unique().tolist()
+    c1, c2 = st.columns(2)
+    nama_user = c1.text_input("👤 Nama User")
+    negara = c2.text_input("🌍 Negara Tujuan")
 
-    c1, c2, c3 = st.columns(3)
-    nama_user = c1.selectbox("👤 Nama User", options=[""] + user_list, index=0)
-    if not nama_user:
-        nama_user = c1.text_input("Atau ketik User baru")
+    beasiswa = c1.text_input("🎯 Nama Beasiswa")
+    link = c2.text_input("🔗 Link Beasiswa")
 
-    negara = c2.selectbox("🌍 Negara Tujuan", options=[""] + country_list, index=0)
-    if not negara:
-        negara = c2.text_input("Atau ketik Negara baru")
+    c3, c4 = st.columns(2)
+    ielts = c3.text_input("📘 IELTS Requirement", placeholder="contoh: 6.5 overall")
+    gpa = c4.text_input("🎓 GPA Requirement", placeholder="contoh: 3.5 / 4.0")
 
-    beasiswa = c3.selectbox("🎯 Nama Beasiswa", options=[""] + scholarship_list, index=0)
-    if not beasiswa:
-        beasiswa = c3.text_input("Atau ketik Beasiswa baru")
-
-    link = st.text_input("🔗 Link Beasiswa")
-    ielts, gpa = st.columns(2)
-    ielts_val = ielts.text_input("📘 IELTS Requirement", placeholder="contoh: 6.5 overall")
-    gpa_val = gpa.text_input("🎓 GPA Requirement", placeholder="contoh: 3.5 / 4.0")
-
-    other = st.text_area("🧾 Other Requirements", height=100)
-    benefit = st.text_area("💰 Benefit Scholarship", height=100)
+    c5, c6 = st.columns(2)
+    other = c5.text_area("🧾 Other Requirements", height=100)
+    benefit = c6.text_area("💰 Benefit Scholarship", height=100)
 
     st.markdown("#### ⏰ Periode & Deadline Penting")
+
+    st.markdown("**🗓️ Pendaftaran**")
+    p1, p2 = st.columns(2)
+    start_reg = p1.date_input("Mulai Pendaftaran")
+    end_reg = p2.date_input("Selesai Pendaftaran")
+
+    st.markdown("**📂 Dokumen**")
     d1, d2 = st.columns(2)
-    periode_start = d1.date_input("📅 Periode Pendaftaran (Mulai)")
-    periode_end = d2.date_input("📅 Periode Pendaftaran (Selesai)")
+    start_doc = d1.date_input("Mulai Pengumpulan Dokumen")
+    end_doc = d2.date_input("Selesai Pengumpulan Dokumen")
 
-    d3, d4 = st.columns(2)
-    dokumen = d3.date_input("📂 Deadline Dokumen", value=None)
-    wawancara = d4.date_input("🎤 Deadline Wawancara", value=None)
+    st.markdown("**🎤 Wawancara**")
+    w1, w2 = st.columns(2)
+    start_interview = w1.date_input("Mulai Wawancara")
+    end_interview = w2.date_input("Selesai Wawancara")
 
-    d5, d6, d7 = st.columns(3)
-    tes1 = d5.date_input("📝 Deadline Tes 1", value=None)
-    tes2 = d6.date_input("📝 Deadline Tes 2", value=None)
-    pengumuman = d7.date_input("📢 Tanggal Pengumuman", value=None)
+    st.markdown("**🧪 Tes Beasiswa**")
+    t1, t2 = st.columns(2)
+    start_test = t1.date_input("Mulai Tes")
+    end_test = t2.date_input("Selesai Tes")
+
+    st.markdown("**📢 Pengumuman**")
+    pengumuman = st.date_input("Tanggal Pengumuman")
 
     submitted = st.form_submit_button("💾 Simpan Data Beasiswa")
+
     if submitted:
         if not nama_user or not beasiswa:
-            st.warning("Isi minimal Nama User dan Nama Beasiswa!")
+            st.warning("⚠️ Isi minimal Nama User dan Nama Beasiswa!")
         else:
             new_row = {
                 "Nama User": nama_user,
                 "Negara": negara,
                 "Beasiswa": beasiswa,
                 "Link Beasiswa": link,
-                "IELTS": ielts_val,
-                "GPA": gpa_val,
+                "IELTS": ielts,
+                "GPA": gpa,
                 "Other Requirements": other,
                 "Benefit Scholarship": benefit,
-                "Periode Pendaftaran (Dari)": str(periode_start),
-                "Periode Pendaftaran (Sampai)": str(periode_end),
-                "Deadline Dokumen": str(dokumen) if dokumen else "",
-                "Deadline Wawancara": str(wawancara) if wawancara else "",
-                "Deadline Tes 1": str(tes1) if tes1 else "",
-                "Deadline Tes 2": str(tes2) if tes2 else "",
-                "Tanggal Pengumuman": str(pengumuman) if pengumuman else ""
+                "Periode Pendaftaran (Mulai)": str(start_reg),
+                "Periode Pendaftaran (Selesai)": str(end_reg),
+                "Periode Dokumen (Mulai)": str(start_doc),
+                "Periode Dokumen (Selesai)": str(end_doc),
+                "Periode Wawancara (Mulai)": str(start_interview),
+                "Periode Wawancara (Selesai)": str(end_interview),
+                "Periode Tes (Mulai)": str(start_test),
+                "Periode Tes (Selesai)": str(end_test),
+                "Tanggal Pengumuman": str(pengumuman)
             }
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
             save_data(df)
@@ -158,43 +159,78 @@ with st.form("form_beasiswa", clear_on_submit=True):
             st.rerun()
 
 # ================================
-# 🔍 FILTERING & VISUAL
+# 🔔 REMINDER
 # ================================
 st.divider()
-st.markdown("## 🔍 Filter & Statistik")
+st.markdown("## 🔔 Reminder Beasiswa yang Akan Tutup dalam 7 Hari")
 
 if not df.empty:
-    c1, c2, c3 = st.columns(3)
-    f_user = c1.selectbox("Filter User", options=["All"] + df["Nama User"].unique().tolist())
-    f_negara = c2.selectbox("Filter Negara", options=["All"] + df["Negara"].unique().tolist())
-    f_beasiswa = c3.selectbox("Filter Beasiswa", options=["All"] + df["Beasiswa"].unique().tolist())
+    today = date.today()
+    df["Periode Pendaftaran (Selesai)"] = pd.to_datetime(df["Periode Pendaftaran (Selesai)"], errors="coerce").dt.date
+    df["Days Left"] = (df["Periode Pendaftaran (Selesai)"] - today).apply(lambda x: x.days if pd.notnull(x) else None)
+    soon = df[df["Days Left"].between(0, 7, inclusive="both")]
 
-    df_filtered = df.copy()
-    if f_user != "All":
-        df_filtered = df_filtered[df_filtered["Nama User"] == f_user]
-    if f_negara != "All":
-        df_filtered = df_filtered[df_filtered["Negara"] == f_negara]
-    if f_beasiswa != "All":
-        df_filtered = df_filtered[df_filtered["Beasiswa"] == f_beasiswa]
-
-    if df_filtered.empty:
-        st.warning("Tidak ada data sesuai filter.")
+    if not soon.empty:
+        st.success(f"🎯 Ada {len(soon)} beasiswa yang akan tutup dalam 7 hari!")
+        st.dataframe(
+            soon[["Nama User", "Beasiswa", "Negara", "Periode Pendaftaran (Selesai)", "Days Left"]],
+            use_container_width=True, hide_index=True
+        )
     else:
-        col1, col2 = st.columns(2)
-        fig1 = px.bar(df_filtered.groupby("Negara").size().reset_index(name="Jumlah"),
-                      x="Negara", y="Jumlah", text_auto=True, title="🌍 Beasiswa per Negara")
-        col1.plotly_chart(fig1, use_container_width=True)
+        st.info("✅ Tidak ada beasiswa yang akan tutup dalam 7 hari.")
+else:
+    st.info("Belum ada data untuk reminder.")
 
-        fig2 = px.pie(df_filtered, names="Nama User", title="👥 Distribusi per User")
-        col2.plotly_chart(fig2, use_container_width=True)
+# ================================
+# 📊 GANTT CHART
+# ================================
+st.divider()
+st.markdown("## 🗓️ Timeline Gantt Chart (Berdasarkan Negara)")
+
+if not df.empty:
+    selected_country = st.selectbox("🌍 Pilih Negara", sorted(df["Negara"].dropna().unique()))
+    df_country = df[df["Negara"] == selected_country]
+
+    if not df_country.empty:
+        events = []
+        for _, row in df_country.iterrows():
+            for phase, start_col, end_col in [
+                ("Pendaftaran", "Periode Pendaftaran (Mulai)", "Periode Pendaftaran (Selesai)"),
+                ("Dokumen", "Periode Dokumen (Mulai)", "Periode Dokumen (Selesai)"),
+                ("Wawancara", "Periode Wawancara (Mulai)", "Periode Wawancara (Selesai)"),
+                ("Tes", "Periode Tes (Mulai)", "Periode Tes (Selesai)"),
+                ("Pengumuman", "Tanggal Pengumuman", "Tanggal Pengumuman")
+            ]:
+                if row[start_col] and row[end_col]:
+                    events.append({
+                        "Beasiswa": row["Beasiswa"],
+                        "Tahapan": phase,
+                        "Mulai": pd.to_datetime(row[start_col]),
+                        "Selesai": pd.to_datetime(row[end_col])
+                    })
+
+        gantt_df = pd.DataFrame(events)
+        if not gantt_df.empty:
+            fig = px.timeline(
+                gantt_df, x_start="Mulai", x_end="Selesai", y="Beasiswa",
+                color="Tahapan", title=f"📅 Timeline Beasiswa ({selected_country})",
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig.update_yaxes(autorange="reversed")
+            fig.update_layout(height=500)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Belum ada periode yang lengkap untuk ditampilkan.")
+    else:
+        st.warning("Tidak ada data untuk negara ini.")
 else:
     st.info("Belum ada data untuk ditampilkan.")
 
 # ================================
-# 📋 DATABASE TABEL
+# 📋 DATABASE
 # ================================
 st.divider()
-st.markdown("## 📋 Database Beasiswa (Editable + Text Wrap)")
+st.markdown("## 📋 Database Beasiswa (Editable)")
 
 if not df.empty:
     st.data_editor(
@@ -207,4 +243,5 @@ if not df.empty:
 else:
     st.info("Belum ada data yang bisa ditampilkan.")
 
-st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 2.0 | Local JSON Persistent")
+st.divider()
+st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 3.0 | Streamlit + JSON Persistent")
