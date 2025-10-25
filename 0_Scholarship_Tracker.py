@@ -221,17 +221,66 @@ if not df.empty:
         st.warning("Tidak ada data untuk user & negara ini.")
 
 # ================================
-# 📋 DATABASE CANTIK
+# 📋 DATABASE MODERN & RESPONSIVE
 # ================================
 st.divider()
 st.markdown("## 📋 Database Beasiswa")
 
 if not df.empty:
     df_display = df.copy()
-    df_display["Link Beasiswa"] = df_display["Link Beasiswa"].apply(lambda x: f"[🌐 Buka Link]({x})" if x else "-")
-    st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+    # Buat link beasiswa jadi clickable
+    df_display["Link Beasiswa"] = df_display["Link Beasiswa"].apply(
+        lambda x: f'<a href="{x}" target="_blank" style="color:#1f77b4; text-decoration:none;">🌐 Buka Link</a>' if x else "-"
+    )
+
+    # Custom table styling modern
+    st.markdown("""
+    <style>
+    .styled-table {
+        border-collapse: collapse;
+        width: 100%;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .styled-table thead tr {
+        background-color: #1f4e79;
+        color: #ffffff;
+        text-align: left;
+    }
+    .styled-table th, .styled-table td {
+        padding: 10px 15px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    .styled-table tbody tr {
+        border-bottom: 1px solid #dddddd;
+    }
+    .styled-table tbody tr:nth-of-type(even) {
+        background-color: #f3f6fa;
+    }
+    .styled-table tbody tr:hover {
+        background-color: #e9f3ff;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Convert dataframe ke HTML dengan class custom
+    html_table = df_display.to_html(
+        escape=False,
+        index=False,
+        classes="styled-table"
+    )
+
+    # Render table
+    st.markdown(html_table, unsafe_allow_html=True)
+
 else:
     st.info("Belum ada data yang bisa ditampilkan.")
 
 st.divider()
-st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 3.2 | Streamlit + JSON Persistent")
+st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 3.3 | Streamlit + JSON Persistent | UI Enhanced")
