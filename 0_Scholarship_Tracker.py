@@ -7,7 +7,7 @@ import json, os
 # ================================
 # ⚙️ PAGE CONFIG
 # ================================
-st.set_page_config(page_title="🎓 Scholarship Tracker 3.2", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="🎓 Scholarship Tracker 3.3", page_icon="🎓", layout="wide")
 
 # ================================
 # 💾 DATA HANDLING
@@ -51,28 +51,13 @@ st.markdown("""
 <style>
 body { background-color: #f8fafc; font-family: 'Poppins', sans-serif; }
 h1, h2, h3, h4 { color: #1f4e79; }
-.dataframe th {
-    background-color: #1f4e79 !important;
-    color: white !important;
-    text-align: center !important;
-    padding: 8px !important;
-}
-.dataframe td {
-    background-color: #fdfefe !important;
-    padding: 8px !important;
-    border: 1px solid #ddd !important;
-    word-wrap: break-word !important;
-    white-space: normal !important;
-}
-tr:nth-child(even) td { background-color: #f8f9fa !important; }
-tr:hover td { background-color: #eaf2f8 !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ================================
 # 🎓 HEADER
 # ================================
-st.markdown("<h1 style='text-align:center;'>🎓 Scholarship Tracker 3.2</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>🎓 Scholarship Tracker 3.3</h1>", unsafe_allow_html=True)
 st.caption("📍 Data tersimpan otomatis secara lokal (JSON) — tetap aman walau direfresh 🔒")
 st.divider()
 
@@ -228,13 +213,10 @@ st.markdown("## 📋 Database Beasiswa")
 
 if not df.empty:
     df_display = df.copy()
-
-    # Buat link beasiswa jadi clickable
     df_display["Link Beasiswa"] = df_display["Link Beasiswa"].apply(
         lambda x: f'<a href="{x}" target="_blank" style="color:#1f77b4; text-decoration:none;">🌐 Buka Link</a>' if x else "-"
     )
 
-    # Custom table styling modern
     st.markdown("""
     <style>
     .styled-table {
@@ -269,14 +251,12 @@ if not df.empty:
     </style>
     """, unsafe_allow_html=True)
 
-    # Convert dataframe ke HTML dengan class custom
     html_table = df_display.to_html(
         escape=False,
         index=False,
         classes="styled-table"
     )
 
-    # Render table
     st.markdown(html_table, unsafe_allow_html=True)
 
 else:
