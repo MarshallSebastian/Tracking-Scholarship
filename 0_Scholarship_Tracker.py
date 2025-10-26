@@ -7,7 +7,7 @@ import json, os, shutil
 # ================================
 # ⚙️ PAGE CONFIG
 # ================================
-st.set_page_config(page_title="🎓 Scholarship Tracker 4.1", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="🎓 Scholarship Tracker 4.2", page_icon="🎓", layout="wide")
 
 # ================================
 # 💾 DATA HANDLING
@@ -55,87 +55,95 @@ for c in get_empty_df().columns:
         df[c] = ""
 
 # ================================
-# 🎨 CSS Styling (Dark/Light Mode Safe)
+# 🎨 DARK ELEGANT CSS
 # ================================
 st.markdown("""
 <style>
-/* ==== BASE PAGE ==== */
 body {
-    background-color: #f6f9fc;
+    background-color: #0e1117;
+    color: #e0e6ed;
     font-family: 'Poppins', sans-serif;
-    color: #1f2937;
 }
 
-/* ==== AUTO DARK MODE COMPATIBILITY ==== */
-:root { color-scheme: light dark; }
-[data-testid="stAppViewContainer"] {
-    background-color: var(--background-color, #f6f9fc) !important;
-}
-label, input, textarea, select, div, span, p, h1, h2, h3 {
-    color: #1f2937 !important;
-}
-input, textarea, select {
-    background-color: #ffffff !important;
-    color: #111827 !important;
-}
-
-/* ==== HEADER ==== */
+/* HEADER */
 h1, h2, h3 {
-    color: #1f4e79;
+    color: #4db8ff;
     text-align: center;
+    font-weight: 700;
 }
 
-/* ==== FORM CARD ==== */
+/* SUBHEADER & CAPTION */
+h2, h3 {
+    color: #c7d5e0;
+}
+p, label, span, div {
+    color: #d1d5db !important;
+}
+
+/* FORM CARD */
 div[data-testid="stForm"] {
-    background: #ffffff;
+    background: #1a1d25;
     padding: 25px 35px;
     border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    border: 1px solid #2c2f36;
 }
 
-/* ==== BUTTON ==== */
+/* INPUTS */
+input, textarea, select {
+    background-color: #2b2f3a !important;
+    color: #f0f3f8 !important;
+    border: 1px solid #3b4252 !important;
+    border-radius: 6px;
+}
+input::placeholder, textarea::placeholder {
+    color: #9ca3af !important;
+}
+
+/* BUTTONS */
 .stButton>button {
-    background-color: #1f77b4;
+    background: linear-gradient(90deg, #007acc, #1f77b4);
     color: white;
     font-weight: 600;
+    border: none;
     border-radius: 8px;
     padding: 10px 25px;
     width: 100%;
     transition: all 0.3s ease;
 }
 .stButton>button:hover {
-    background-color: #135a8d;
+    background: linear-gradient(90deg, #0095ff, #2da9e3);
     transform: scale(1.02);
 }
 
-/* ==== TABLE ==== */
+/* TABLE */
 .data-table {
     width: 100%;
     border-collapse: collapse;
     border-radius: 10px;
     overflow: hidden;
     font-size: 14px;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    background: #1a1d25;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 .data-table th {
-    background: linear-gradient(90deg, #1f4e79, #2980b9);
-    color: white;
+    background: #1f4e79;
+    color: #e0f0ff;
     padding: 10px 12px;
     text-align: left;
     font-weight: 600;
 }
 .data-table td {
     padding: 10px 12px;
-    border-bottom: 1px solid #eaeaea;
+    border-bottom: 1px solid #2c2f36;
+    color: #e3e9f0;
 }
 .data-table tr:nth-child(even) {
-    background-color: #f8fbff;
+    background-color: #222733;
 }
 .data-table tr:hover {
-    background-color: #eaf3ff;
-    transition: background-color 0.3s ease;
+    background-color: #2d3242;
+    transition: 0.3s ease;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -143,8 +151,8 @@ div[data-testid="stForm"] {
 # ================================
 # 🎓 HEADER
 # ================================
-st.markdown("<h1>🎓 Scholarship Tracker 4.1</h1>", unsafe_allow_html=True)
-st.caption("💾 Auto-Save | Reminder | Gantt Chart | Filter | Dibuat oleh Yan Marcel Sebastian")
+st.markdown("<h1>🎓 Scholarship Tracker 4.2</h1>", unsafe_allow_html=True)
+st.caption("🌙 Dark Elegant Edition | Smart Reminder | Filter | Gantt Chart | Dibuat oleh Yan Marcel Sebastian")
 
 # ================================
 # 🔍 FILTER SECTION
@@ -181,12 +189,12 @@ else:
 if "show_form" not in st.session_state:
     st.session_state.show_form = False
 
-if st.button("✏️ Tambah Beasiswa Baru"):
+if st.button("➕ Tambah Beasiswa Baru"):
     st.session_state.show_form = not st.session_state.show_form
 
 if st.session_state.show_form:
     with st.form("form_beasiswa", clear_on_submit=True):
-        st.subheader("➕ Tambahkan Data Beasiswa Baru")
+        st.subheader("📝 Tambahkan Data Beasiswa Baru")
 
         c1, c2 = st.columns(2)
         nama_user = c1.text_input("👤 Nama User")
@@ -244,10 +252,12 @@ if not df_filtered.empty:
     upcoming = df_filtered[df_filtered["Days Left"].between(0, 30, inclusive="both")]
     if not upcoming.empty:
         df_chart = upcoming.groupby("Beasiswa", as_index=False)["Days Left"].mean()
-        df_chart["Color"] = df_chart["Days Left"].apply(lambda x: "#27ae60" if x > 15 else "#f1c40f" if x > 7 else "#e74c3c")
-        fig = px.bar(df_chart, x="Beasiswa", y="Days Left", color="Color", text_auto=True,
-                     title="📆 Sisa Waktu Pendaftaran (Hari)", color_discrete_map="identity")
-        fig.update_layout(showlegend=False, yaxis_title="Hari Tersisa", xaxis_title="Beasiswa", height=400)
+        fig = px.bar(df_chart, x="Beasiswa", y="Days Left", text_auto=True,
+                     title="📆 Sisa Waktu Pendaftaran (Hari)",
+                     color="Days Left", color_continuous_scale="tealrose")
+        fig.update_layout(showlegend=False, yaxis_title="Hari", xaxis_title="Beasiswa",
+                          paper_bgcolor="#0e1117", plot_bgcolor="#0e1117",
+                          font_color="#e0e6ed", height=400)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("✅ Tidak ada beasiswa yang akan tutup dalam 30 hari.")
@@ -280,9 +290,10 @@ if not df_filtered.empty:
     gantt_df = pd.DataFrame(events)
     if not gantt_df.empty:
         fig = px.timeline(gantt_df, x_start="Mulai", x_end="Selesai", y="Beasiswa", color="Tahapan",
-                          color_discrete_sequence=px.colors.qualitative.Pastel, title="📅 Timeline Beasiswa")
+                          color_discrete_sequence=px.colors.qualitative.Safe,
+                          title="📅 Timeline Beasiswa")
         fig.update_yaxes(autorange="reversed")
-        fig.update_layout(height=500)
+        fig.update_layout(paper_bgcolor="#0e1117", plot_bgcolor="#0e1117", font_color="#e0e6ed", height=500)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Belum ada data timeline lengkap.")
@@ -293,12 +304,12 @@ else:
 # 📋 DATA TABLE (READ ONLY)
 # ================================
 st.divider()
-st.markdown("## 📋 Data Beasiswa")
+st.markdown("## 📋 Data Beasiswa (Klik Link untuk Membuka)")
 
 if not df_filtered.empty:
     df_show = df_filtered.copy()
     df_show["Link Beasiswa"] = df_show["Link Beasiswa"].apply(
-        lambda x: f'<a href="{x}" target="_blank" style="color:#1f77b4;">🌐 Buka</a>' if x else "-"
+        lambda x: f'<a href="{x}" target="_blank" style="color:#4db8ff;">🌐 Buka</a>' if x else "-"
     )
     st.markdown(df_show.to_html(escape=False, index=False, classes="data-table"), unsafe_allow_html=True)
 else:
@@ -322,4 +333,4 @@ else:
     st.info("Belum ada data yang bisa dihapus.")
 
 st.divider()
-st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 4.1 | Dark-Mode Ready 🎓")
+st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 4.2 | Dark Elegant UI 🎓")
