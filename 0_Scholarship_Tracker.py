@@ -7,16 +7,15 @@ import json, os, shutil
 # ================================
 # ⚙️ PAGE CONFIG
 # ================================
-st.set_page_config(page_title="🎓 Scholarship Tracker 3.6", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="🎓 Scholarship Tracker 4.0", page_icon="🎓", layout="wide")
 
 # ================================
-# 💾 DATA HANDLING
+# 💾 DATA HANDLING (Auto-Recovery)
 # ================================
 DATA_FILE = "data_scholarship.json"
 BACKUP_FILE = "data_scholarship_backup.json"
 
 def get_empty_df():
-    """Template dataframe kosong"""
     return pd.DataFrame(columns=[
         "Nama User", "Negara", "Beasiswa", "Link Beasiswa", "IELTS", "GPA",
         "Other Requirements", "Benefit Scholarship",
@@ -27,39 +26,25 @@ def get_empty_df():
     ])
 
 def load_data():
-    """Aman dari error JSON rusak atau kosong"""
     if not os.path.exists(DATA_FILE):
         return get_empty_df()
-
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             content = f.read().strip()
             if not content:
-                st.warning("⚠️ File data kosong, membuat file baru.")
                 return get_empty_df()
             return pd.DataFrame(json.loads(content))
     except json.JSONDecodeError:
-        st.error("❌ File JSON rusak. Membuat salinan dan memperbaiki otomatis...")
-        try:
-            shutil.copy(DATA_FILE, BACKUP_FILE)
-            st.info("💾 Backup tersimpan di data_scholarship_backup.json")
-        except:
-            pass
-        return get_empty_df()
-    except Exception as e:
-        st.error(f"Terjadi error tak terduga: {e}")
+        shutil.copy(DATA_FILE, BACKUP_FILE)
+        st.warning("⚠️ File JSON rusak, dibuat ulang. Backup disimpan.")
         return get_empty_df()
 
 def convert_dates_to_str(df):
-    """Konversi semua kolom tanggal ke string sebelum disimpan ke JSON"""
     for col in df.columns:
-        df[col] = df[col].apply(
-            lambda x: x.isoformat() if isinstance(x, (date, datetime)) else x
-        )
+        df[col] = df[col].apply(lambda x: x.isoformat() if isinstance(x, (date, datetime)) else x)
     return df
 
 def save_data(df):
-    """Aman disimpan ke JSON"""
     df = convert_dates_to_str(df)
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(df.to_dict(orient="records"), f, ensure_ascii=False, indent=2)
@@ -70,34 +55,117 @@ for c in get_empty_df().columns:
         df[c] = ""
 
 # ================================
-# 🎨 STYLING
+# 🎨 CSS Styling
 # ================================
 st.markdown("""
 <style>
-body { background-color: #f8fafc; font-family: 'Poppins', sans-serif; }
-h1, h2, h3, h4 { color: #1f4e79; }
+body {
+    background-color: #f6f9fc;
+    font-family: 'Poppins', sans-serif;
+    color: #2c3e50;
+}
+h1, h2, h3 {
+    color: #1f4e79;
+    text-align: center;
+}
+div[data-testid="stForm"] {
+    background: #ffffff;
+    padding: 20px 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border: 1px solid #e0e0e0;
+}
+.stButton>button {
+    background-color: #1f77b4;
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 25px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+.stButton>button:hover {
+    background-color: #135a8d;
+    transform: scale(1.02);
+}
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 14px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.data-table th {
+    background: linear-gradient(90deg, #1f4e79, #2980b9);
+    color: white;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+}
+.data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eaeaea;
+}
+.data-table tr:nth-child(even) {
+    background-color: #f8fbff;
+}
+.data-table tr:hover {
+    background-color: #eaf3ff;
+    transition: background-color 0.3s ease;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ================================
 # 🎓 HEADER
 # ================================
-st.markdown("<h1 style='text-align:center;'>🎓 Scholarship Tracker 3.6</h1>", unsafe_allow_html=True)
-st.caption("📍 Data tersimpan otomatis secara lokal (JSON) — dan auto-recover bila rusak 💾")
-st.divider()
+st.markdown("<h1>🎓 Scholarship Tracker 4.0</h1>", unsafe_allow_html=True)
+st.caption("💾 Auto-Save | Reminder | Gantt Chart | Filter | Dibuat oleh Yan Marcel Sebastian")
 
 # ================================
-# 🧾 FORM HIDE/UNHIDE
+# 🔍 FILTER SECTION
+# ================================
+if not df.empty:
+    st.subheader("🔍 Filter Data Beasiswa")
+    colf1, colf2, colf3 = st.columns(3)
+
+    user_filter = colf1.selectbox("Filter berdasarkan User", ["Semua"] + sorted(df["Nama User"].dropna().unique().tolist()))
+    country_filter = colf2.selectbox("Filter berdasarkan Negara", ["Semua"] + sorted(df["Negara"].dropna().unique().tolist()))
+
+    # Hitung status otomatis
+    today = date.today()
+    df["Deadline Date"] = pd.to_datetime(df["Periode Pendaftaran (Selesai)"], errors="coerce").dt.date
+    df["Days Left"] = (df["Deadline Date"] - today).apply(lambda x: x.days if pd.notnull(x) else None)
+    df["Status"] = df["Days Left"].apply(
+        lambda x: "🟢 Masih Dibuka" if x and x > 15 else "🟡 Segera Tutup" if x and 0 <= x <= 15 else "🔴 Selesai"
+    )
+
+    status_filter = colf3.selectbox("Filter berdasarkan Status", ["Semua", "🟢 Masih Dibuka", "🟡 Segera Tutup", "🔴 Selesai"])
+
+    df_filtered = df.copy()
+    if user_filter != "Semua":
+        df_filtered = df_filtered[df_filtered["Nama User"] == user_filter]
+    if country_filter != "Semua":
+        df_filtered = df_filtered[df_filtered["Negara"] == country_filter]
+    if status_filter != "Semua":
+        df_filtered = df_filtered[df_filtered["Status"] == status_filter]
+else:
+    df_filtered = df
+
+# ================================
+# 🧾 FORM INPUT
 # ================================
 if "show_form" not in st.session_state:
     st.session_state.show_form = False
 
-if st.button("✏️ Tampilkan/Sembunyikan Form Input Beasiswa"):
+if st.button("✏️ Tambah Beasiswa Baru"):
     st.session_state.show_form = not st.session_state.show_form
 
 if st.session_state.show_form:
     with st.form("form_beasiswa", clear_on_submit=True):
-        st.subheader("➕ Tambah / Update Data Beasiswa")
+        st.subheader("➕ Tambahkan Data Beasiswa Baru")
         c1, c2 = st.columns(2)
         nama_user = c1.text_input("👤 Nama User")
         negara = c2.text_input("🌍 Negara Tujuan")
@@ -109,25 +177,17 @@ if st.session_state.show_form:
         benefit = st.text_area("💰 Benefit Scholarship", height=100)
 
         st.markdown("#### ⏰ Periode & Deadline Penting")
-        def optional_date(label):
-            try:
-                return st.date_input(label, value=None, key=label)
-            except:
-                return None
+        def opt_date(label): return st.date_input(label, value=None, key=label)
 
         p1, p2 = st.columns(2)
-        start_reg = optional_date("Mulai Pendaftaran")
-        end_reg = optional_date("Selesai Pendaftaran")
+        start_reg, end_reg = opt_date("Mulai Pendaftaran"), opt_date("Selesai Pendaftaran")
         d1, d2 = st.columns(2)
-        start_doc = optional_date("Mulai Pengumpulan Dokumen")
-        end_doc = optional_date("Selesai Pengumpulan Dokumen")
+        start_doc, end_doc = opt_date("Mulai Pengumpulan Dokumen"), opt_date("Selesai Pengumpulan Dokumen")
         w1, w2 = st.columns(2)
-        start_int = optional_date("Mulai Wawancara")
-        end_int = optional_date("Selesai Wawancara")
+        start_int, end_int = opt_date("Mulai Wawancara"), opt_date("Selesai Wawancara")
         t1, t2 = st.columns(2)
-        start_test = optional_date("Mulai Tes")
-        end_test = optional_date("Selesai Tes")
-        pengumuman = optional_date("📢 Tanggal Pengumuman")
+        start_test, end_test = opt_date("Mulai Tes"), opt_date("Selesai Tes")
+        pengumuman = opt_date("📢 Tanggal Pengumuman")
 
         if st.form_submit_button("💾 Simpan Beasiswa"):
             if not nama_user or not beasiswa:
@@ -137,15 +197,15 @@ if st.session_state.show_form:
                     "Nama User": nama_user, "Negara": negara, "Beasiswa": beasiswa,
                     "Link Beasiswa": link, "IELTS": ielts, "GPA": gpa,
                     "Other Requirements": other, "Benefit Scholarship": benefit,
-                    "Periode Pendaftaran (Mulai)": str(start_reg) if start_reg else "",
-                    "Periode Pendaftaran (Selesai)": str(end_reg) if end_reg else "",
-                    "Periode Dokumen (Mulai)": str(start_doc) if start_doc else "",
-                    "Periode Dokumen (Selesai)": str(end_doc) if end_doc else "",
-                    "Periode Wawancara (Mulai)": str(start_int) if start_int else "",
-                    "Periode Wawancara (Selesai)": str(end_int) if end_int else "",
-                    "Periode Tes (Mulai)": str(start_test) if start_test else "",
-                    "Periode Tes (Selesai)": str(end_test) if end_test else "",
-                    "Tanggal Pengumuman": str(pengumuman) if pengumuman else ""
+                    "Periode Pendaftaran (Mulai)": str(start_reg),
+                    "Periode Pendaftaran (Selesai)": str(end_reg),
+                    "Periode Dokumen (Mulai)": str(start_doc),
+                    "Periode Dokumen (Selesai)": str(end_doc),
+                    "Periode Wawancara (Mulai)": str(start_int),
+                    "Periode Wawancara (Selesai)": str(end_int),
+                    "Periode Tes (Mulai)": str(start_test),
+                    "Periode Tes (Selesai)": str(end_test),
+                    "Tanggal Pengumuman": str(pengumuman)
                 }
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                 save_data(df)
@@ -158,18 +218,14 @@ if st.session_state.show_form:
 st.divider()
 st.markdown("## ⏰ Reminder Beasiswa (30 Hari ke Depan)")
 
-if not df.empty:
-    today = date.today()
-    df["Periode Pendaftaran (Selesai)"] = pd.to_datetime(df["Periode Pendaftaran (Selesai)"], errors="coerce").dt.date
-    df["Days Left"] = (df["Periode Pendaftaran (Selesai)"] - today).apply(lambda x: x.days if pd.notnull(x) else None)
-    upcoming = df[df["Days Left"].between(0, 30, inclusive="both")]
-
+if not df_filtered.empty:
+    upcoming = df_filtered[df_filtered["Days Left"].between(0, 30, inclusive="both")]
     if not upcoming.empty:
         df_chart = upcoming.groupby("Beasiswa", as_index=False)["Days Left"].mean()
-        df_chart["Color"] = df_chart["Days Left"].apply(lambda x: "#27ae60" if x>15 else "#f1c40f" if x>7 else "#e74c3c")
+        df_chart["Color"] = df_chart["Days Left"].apply(lambda x: "#27ae60" if x > 15 else "#f1c40f" if x > 7 else "#e74c3c")
         fig = px.bar(df_chart, x="Beasiswa", y="Days Left", color="Color", text_auto=True,
                      title="📆 Sisa Waktu Pendaftaran (Hari)", color_discrete_map="identity")
-        fig.update_layout(showlegend=False, yaxis_title="Hari Tersisa", xaxis_title="Beasiswa")
+        fig.update_layout(showlegend=False, yaxis_title="Hari Tersisa", xaxis_title="Beasiswa", height=400)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("✅ Tidak ada beasiswa yang akan tutup dalam 30 hari.")
@@ -177,44 +233,71 @@ else:
     st.info("Belum ada data untuk reminder.")
 
 # ================================
-# 📋 DATABASE EDITABLE + CLICKABLE
+# 📅 GANTT CHART
 # ================================
 st.divider()
-st.markdown("## 📋 Database Beasiswa (Editable & Clickable Link)")
+st.markdown("## 🗓️ Timeline (Gantt Chart)")
 
-if not df.empty:
-    df_edit = df.copy()
-    date_cols = [
-        "Periode Pendaftaran (Mulai)", "Periode Pendaftaran (Selesai)",
-        "Periode Dokumen (Mulai)", "Periode Dokumen (Selesai)",
-        "Periode Wawancara (Mulai)", "Periode Wawancara (Selesai)",
-        "Periode Tes (Mulai)", "Periode Tes (Selesai)", "Tanggal Pengumuman"
-    ]
-    for c in date_cols:
-        df_edit[c] = pd.to_datetime(df_edit[c], errors="coerce").dt.date
-
-    edited_df = st.data_editor(
-        df_edit,
-        use_container_width=True,
-        hide_index=True,
-        num_rows="fixed",
-        height=420
-    )
-
-    if not edited_df.equals(df):
-        save_data(edited_df)
-        st.success("✅ Perubahan disimpan otomatis.")
-        st.rerun()
-
-    st.markdown("### 🌐 Link Beasiswa Aktif")
-    df_links = df[["Beasiswa", "Link Beasiswa"]].dropna()
-    if not df_links.empty:
-        df_links["Link Beasiswa"] = df_links["Link Beasiswa"].apply(
-            lambda x: f'<a href="{x}" target="_blank" style="color:#1f77b4;text-decoration:none;">🌐 Buka Link</a>' if x else "-"
-        )
-        st.markdown(df_links.to_html(escape=False, index=False), unsafe_allow_html=True)
+if not df_filtered.empty:
+    events = []
+    for _, row in df_filtered.iterrows():
+        for phase, start_col, end_col in [
+            ("Pendaftaran", "Periode Pendaftaran (Mulai)", "Periode Pendaftaran (Selesai)"),
+            ("Dokumen", "Periode Dokumen (Mulai)", "Periode Dokumen (Selesai)"),
+            ("Wawancara", "Periode Wawancara (Mulai)", "Periode Wawancara (Selesai)"),
+            ("Tes", "Periode Tes (Mulai)", "Periode Tes (Selesai)"),
+            ("Pengumuman", "Tanggal Pengumuman", "Tanggal Pengumuman")
+        ]:
+            if row[start_col] and row[end_col]:
+                events.append({
+                    "Beasiswa": row["Beasiswa"],
+                    "Tahapan": phase,
+                    "Mulai": pd.to_datetime(row[start_col]),
+                    "Selesai": pd.to_datetime(row[end_col])
+                })
+    gantt_df = pd.DataFrame(events)
+    if not gantt_df.empty:
+        fig = px.timeline(gantt_df, x_start="Mulai", x_end="Selesai", y="Beasiswa", color="Tahapan",
+                          color_discrete_sequence=px.colors.qualitative.Pastel, title="📅 Timeline Beasiswa")
+        fig.update_yaxes(autorange="reversed")
+        fig.update_layout(height=500)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Belum ada data timeline lengkap.")
 else:
     st.info("Belum ada data yang bisa ditampilkan.")
 
+# ================================
+# 📋 DATA TABLE (Read-Only)
+# ================================
 st.divider()
-st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 3.6 | Streamlit + JSON Persistent | Auto-Recovery & Editable Table")
+st.markdown("## 📋 Data Beasiswa")
+
+if not df_filtered.empty:
+    df_show = df_filtered.copy()
+    df_show["Link Beasiswa"] = df_show["Link Beasiswa"].apply(
+        lambda x: f'<a href="{x}" target="_blank" style="color:#1f77b4;">🌐 Buka</a>' if x else "-"
+    )
+    st.markdown(df_show.to_html(escape=False, index=False, classes="data-table"), unsafe_allow_html=True)
+else:
+    st.info("Belum ada data untuk ditampilkan.")
+
+# ================================
+# 🗑️ DELETE DATA
+# ================================
+st.divider()
+st.markdown("## 🗑️ Hapus Data Beasiswa")
+
+if not df.empty:
+    to_delete = st.selectbox("Pilih beasiswa untuk dihapus", [""] + df["Beasiswa"].tolist())
+    if st.button("❌ Hapus Beasiswa Ini"):
+        if to_delete:
+            df = df[df["Beasiswa"] != to_delete]
+            save_data(df)
+            st.success(f"Beasiswa '{to_delete}' berhasil dihapus.")
+            st.rerun()
+else:
+    st.info("Belum ada data yang bisa dihapus.")
+
+st.divider()
+st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 4.0 | Smart Dashboard Edition 🎓")
