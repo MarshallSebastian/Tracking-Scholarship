@@ -7,10 +7,10 @@ import json, os, shutil
 # ================================
 # ⚙️ PAGE CONFIG
 # ================================
-st.set_page_config(page_title="🎓 Scholarship Tracker 4.0", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="🎓 Scholarship Tracker 4.1", page_icon="🎓", layout="wide")
 
 # ================================
-# 💾 DATA HANDLING (Auto-Recovery)
+# 💾 DATA HANDLING
 # ================================
 DATA_FILE = "data_scholarship.json"
 BACKUP_FILE = "data_scholarship_backup.json"
@@ -36,7 +36,7 @@ def load_data():
             return pd.DataFrame(json.loads(content))
     except json.JSONDecodeError:
         shutil.copy(DATA_FILE, BACKUP_FILE)
-        st.warning("⚠️ File JSON rusak, dibuat ulang. Backup disimpan.")
+        st.warning("⚠️ File JSON rusak. Backup disimpan dan file baru dibuat.")
         return get_empty_df()
 
 def convert_dates_to_str(df):
@@ -55,26 +55,46 @@ for c in get_empty_df().columns:
         df[c] = ""
 
 # ================================
-# 🎨 CSS Styling
+# 🎨 CSS Styling (Dark/Light Mode Safe)
 # ================================
 st.markdown("""
 <style>
+/* ==== BASE PAGE ==== */
 body {
     background-color: #f6f9fc;
     font-family: 'Poppins', sans-serif;
-    color: #2c3e50;
+    color: #1f2937;
 }
+
+/* ==== AUTO DARK MODE COMPATIBILITY ==== */
+:root { color-scheme: light dark; }
+[data-testid="stAppViewContainer"] {
+    background-color: var(--background-color, #f6f9fc) !important;
+}
+label, input, textarea, select, div, span, p, h1, h2, h3 {
+    color: #1f2937 !important;
+}
+input, textarea, select {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}
+
+/* ==== HEADER ==== */
 h1, h2, h3 {
     color: #1f4e79;
     text-align: center;
 }
+
+/* ==== FORM CARD ==== */
 div[data-testid="stForm"] {
     background: #ffffff;
-    padding: 20px 30px;
+    padding: 25px 35px;
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     border: 1px solid #e0e0e0;
 }
+
+/* ==== BUTTON ==== */
 .stButton>button {
     background-color: #1f77b4;
     color: white;
@@ -88,6 +108,8 @@ div[data-testid="stForm"] {
     background-color: #135a8d;
     transform: scale(1.02);
 }
+
+/* ==== TABLE ==== */
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -121,7 +143,7 @@ div[data-testid="stForm"] {
 # ================================
 # 🎓 HEADER
 # ================================
-st.markdown("<h1>🎓 Scholarship Tracker 4.0</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🎓 Scholarship Tracker 4.1</h1>", unsafe_allow_html=True)
 st.caption("💾 Auto-Save | Reminder | Gantt Chart | Filter | Dibuat oleh Yan Marcel Sebastian")
 
 # ================================
@@ -134,7 +156,6 @@ if not df.empty:
     user_filter = colf1.selectbox("Filter berdasarkan User", ["Semua"] + sorted(df["Nama User"].dropna().unique().tolist()))
     country_filter = colf2.selectbox("Filter berdasarkan Negara", ["Semua"] + sorted(df["Negara"].dropna().unique().tolist()))
 
-    # Hitung status otomatis
     today = date.today()
     df["Deadline Date"] = pd.to_datetime(df["Periode Pendaftaran (Selesai)"], errors="coerce").dt.date
     df["Days Left"] = (df["Deadline Date"] - today).apply(lambda x: x.days if pd.notnull(x) else None)
@@ -155,7 +176,7 @@ else:
     df_filtered = df
 
 # ================================
-# 🧾 FORM INPUT
+# 🧾 FORM INPUT (TOGGLE)
 # ================================
 if "show_form" not in st.session_state:
     st.session_state.show_form = False
@@ -166,6 +187,7 @@ if st.button("✏️ Tambah Beasiswa Baru"):
 if st.session_state.show_form:
     with st.form("form_beasiswa", clear_on_submit=True):
         st.subheader("➕ Tambahkan Data Beasiswa Baru")
+
         c1, c2 = st.columns(2)
         nama_user = c1.text_input("👤 Nama User")
         negara = c2.text_input("🌍 Negara Tujuan")
@@ -268,7 +290,7 @@ else:
     st.info("Belum ada data yang bisa ditampilkan.")
 
 # ================================
-# 📋 DATA TABLE (Read-Only)
+# 📋 DATA TABLE (READ ONLY)
 # ================================
 st.divider()
 st.markdown("## 📋 Data Beasiswa")
@@ -300,4 +322,4 @@ else:
     st.info("Belum ada data yang bisa dihapus.")
 
 st.divider()
-st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 4.0 | Smart Dashboard Edition 🎓")
+st.caption("💡 Dibuat oleh Yan Marcel Sebastian | Scholarship Tracker 4.1 | Dark-Mode Ready 🎓")
